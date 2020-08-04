@@ -47,6 +47,7 @@ export default function Calculator() {
 
     return (
         <View style={{ paddingHorizontal: safeX, flexGrow: 1 }}>
+
             <View style={{ flexGrow: 1, justifyContent: 'flex-end', alignItems: 'flex-end' }}>
                 <View style={{ flexDirection: 'row-reverse' }}>
                     <Text>{sub}</Text>
@@ -92,6 +93,7 @@ export default function Calculator() {
                 <CalcButton dimensions={dimensions} label='.' handlePress={handlePress} />
                 <CalcButton dimensions={dimensions} label='=' color='orange' handlePress={handlePress} />
             </View>
+            
         </View>
     );
 }
