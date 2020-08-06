@@ -48,7 +48,7 @@ export default function History(props: Props) {
             <TouchableOpacity 
                 style={{ 
                     alignSelf: 'flex-end',
-                    transform: [{ translateY: -8 }],
+                    transform: [{ translateY: -3 }],
                     marginLeft: 3
                 }}
                 onPress={() => props.handlePressHistory(viewVal)}
