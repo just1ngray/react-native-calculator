@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "calculator",
+    "name": "Calculator",
     "slug": "calculator",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -21,6 +21,8 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "description": "My first React Native project - a simple calculator.",
+    "githubUrl": "https://github.com/just1ngray/react-native-calculator"
   }
 }
