@@ -18,6 +18,7 @@ export default function HorizontalScroll(props: Props) {
     return (
         <View style={{ 
             height: props.maxFontSize,
+            marginLeft: 20
         }}>
             <ScrollView
                     horizontal={true} 
