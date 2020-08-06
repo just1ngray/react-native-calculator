@@ -70,7 +70,7 @@ function mutateArray(array: string[], operationIndex: number) {
 
 function calc(a: number, op: '+' | '/' | '*' | '^', b: number): string {
     function getRounded(number: number): string {
-        return String(Math.round(number * 10_000) / 10_000);
+        return String(Math.round(number * 10000) / 10000);
     }
     switch (op) {
         case '*': return getRounded(a * b);
