@@ -6,6 +6,11 @@
  */
 export default function calculate(expression: string): string {
     try {
+        // replace any instance of e(+|-)[0-9]+ with *10^x
+        // haven't been able to test if it works for e-30, but it should
+        expression = expression.replace(/e(\+|-)[0-9]+/, match => 
+                '*10^' + match.substring(1 + (match.includes('+') ? 1 : 0), match.length));
+
         // replace any instance of -(...) with -1*(...)
         expression = expression.replace(/-\(/g, '-1*(');
 
