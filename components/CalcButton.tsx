@@ -34,9 +34,9 @@ export default function CalcButton(props: Props) {
             margin: margin
         },
         label: {
-            fontSize: dims.rowHeight,
+            fontSize: dims.rowHeight * .6,
             alignSelf: 'center',
-            lineHeight: dims.rowHeight
+            lineHeight: dims.rowHeight,
         }
     });
 
