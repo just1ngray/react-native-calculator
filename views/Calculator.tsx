@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Dimensions, View, Text } from 'react-native';
+import { Dimensions, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -7,6 +7,7 @@ import CalcButton from '../components/CalcButton';
 import DeleteButton from '../components/DeleteButton';
 import HorizontalScroll from '../components/HorizontalScroll';
 import calculate from '../util/calculate';
+import History from '../components/History';
 
 const safeX = 4;
 const window = Dimensions.get('window');
@@ -14,23 +15,37 @@ const btnWidth = (window.width / 4) - (2 * safeX);
 
 export default function Calculator() {
     const [main, setMain] = useState('');
-    const [sub, setSub] = useState('');
+
+    const [history, setHistory] = useState<string[]>([]);
+    const [currentVal, setCurrentVal] = useState('');
 
     const dimensions = {
         rowHeight: btnWidth,
         colWidth: btnWidth
     }
 
+    /**
+     * Handles main button presses
+     * @param label the pressed button's label
+     */
     function handlePress(label: string): void {
+        // anything but =
         if (label !== '=') {
             setMain(main + label);
-            setSub(calculate(main + label));
+            setCurrentVal(calculate(main + label));
+
+        // = only
         } else {
-            setSub(main);
-            setMain(calculate(main));
+            const result = calculate(main);
+            setHistory([...history, main + " = " + result]);
+            setMain(result);
         }
     }
 
+    /**
+     * Handles backspacing characters
+     * @param howMany how many chars to backspace
+     */
     function backspace(howMany: 'one' | 'all'): void {
         let newMain;
         switch (howMany) {
@@ -42,28 +57,46 @@ export default function Calculator() {
                 break;
         }
         setMain(newMain);
-        setSub(calculate(newMain));
+        setCurrentVal(calculate(newMain));
+    }
+
+    function handlePressHistory(viewing: string) {
+        if (viewing === 'clear') {
+            setHistory([]);
+            return;
+        }
+        if (viewing === 'current' || viewing.length < 3) return;
+
+        const valToAdd = viewing.substring(viewing.indexOf('=') + 2, viewing.length);
+        setMain(main + valToAdd);
+        setCurrentVal(calculate(main + valToAdd));
     }
 
     return (
         <View style={{ paddingHorizontal: safeX, flexGrow: 1 }}>
 
-            <View style={{ flexGrow: 1, justifyContent: 'flex-end', alignItems: 'flex-end' }}>
-                <View style={{ flexDirection: 'row-reverse' }}>
-                    <Text>{sub}</Text>
-                </View>
-                <View style={{ flexDirection: 'row' }}>
+            <View style={{ 
+                flexGrow: 1, 
+                justifyContent: 'flex-end',
+            }}>
+                <History currentVal={currentVal} history={history} handlePressHistory={handlePressHistory} />
+
+                <View style={{ flexDirection: 'row', alignSelf: 'flex-end' }}>
                     <HorizontalScroll text={main} maxFontSize={btnWidth * 0.8} />
                     <View style={{ justifyContent: 'space-around' }}>
+
+                        
+
                         <DeleteButton amount='one' backspace={backspace}>
-                            <Feather name='delete' size={24} color='gray' />
+                            <Feather name='delete' size={32} color='gray' />
                         </DeleteButton>
                         <DeleteButton amount='all' backspace={backspace}>
-                            <MaterialCommunityIcons name='close-circle-outline' size={24} color='gray' />
+                            <MaterialCommunityIcons name='close-circle-outline' size={32} color='gray' />
                         </DeleteButton>
                     </View>
                 </View>
             </View>
+
             <View style={{ flexDirection: 'row' }}>
                 <CalcButton dimensions={dimensions} label='^' color='orange' handlePress={handlePress} />
                 <CalcButton dimensions={dimensions} label='(' color='orange' handlePress={handlePress} />

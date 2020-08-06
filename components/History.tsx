@@ -54,7 +54,7 @@ export default function History(props: Props) {
                 onPress={() => props.handlePressHistory(viewVal)}
                 onLongPress={() => props.handlePressHistory('clear')}
             >
-                <Feather name='clock' size={24} color='gray' />
+                <Feather name='clock' size={32} color='gray' />
             </TouchableOpacity>
         </View>
     );
