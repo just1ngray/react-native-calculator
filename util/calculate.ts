@@ -1,10 +1,22 @@
 /**
- * Evaluates a mathematical expression to 2 digits.
+ * Evaluates a mathematical expression to 4 digit decimal precision.
  * @param expression    the expression to evaluate
  * @return              the value of the expression if valid, 'NaN' if imaginary, and
  *                      'Math error' if invalid
  */
 export default function calculate(expression: string): string {
+
+    // this ensures the parenthesis are properly matched, else will return math error
+    const stack: string[] = [];
+    Array.from(expression)
+        .filter(ch => ch === '(' || ch === ')')
+        .forEach(ch => {
+            if (ch === '(') stack.push(ch);
+            else if (stack[stack.length - 1] === '(') stack.pop();
+            else stack.push('-');
+        });
+    if (stack.length > 0) return 'Math error';
+    
     try {
         // replace any instance of e(+|-)[0-9]+ with *10^x
         // haven't been able to test if it works for e-30, but it should
@@ -14,9 +26,8 @@ export default function calculate(expression: string): string {
         // replace any instance of -(...) with -1*(...)
         expression = expression.replace(/-\(/g, '-1*(');
 
-        // replace any instance of )( with )*(
-        // while (expression.includes(')(')) expression.replace(')(', ')*(');
-        expression = expression.replace(/\)\(/g, ')*(');
+        // replace any instance of .( with .*(
+        expression = expression.replace(/.\(/g, match => `${match.charAt(0)}*(`);
 
         // replace any instance of #-- with #+
         expression = expression.replace(/[0-9]--/g, match => match.charAt(0) + '+');
@@ -36,10 +47,10 @@ export default function calculate(expression: string): string {
                 else if (nomials[i] === ')') depth --;
 
                 if (depth === 0) {
-                    const wrapped = nomials.splice(openBracketIndex, (i + 1) - openBracketIndex);   // get the (...)
-                    const inner = wrapped.slice(1, wrapped.length - 1);                             // get the  ...
-                    nomials.splice(openBracketIndex, 0, calculate(inner.join('')));                 // insert the new calculated 
-                                                                                                    // value in spot of old (...)
+                    const wrapped = nomials.splice(openBracketIndex, (i + 1) - openBracketIndex);   // 1. get the (...)
+                    const inner = wrapped.slice(1, wrapped.length - 1);                             // 2. get the  ...
+                    nomials.splice(openBracketIndex, 0, calculate(inner.join('')));                 // 3. insert the new calculated 
+                                                                                                    //    value in spot of old (...)
                     break;
                 }
             }
