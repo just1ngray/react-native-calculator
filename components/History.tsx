@@ -1,61 +1,62 @@
-import React, { useState, useEffect } from 'react';
-import { View, Picker, TouchableOpacity } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import React, { 
+    useRef,
+    useEffect,
+    useState,
+} from 'react';
+import { 
+    View, 
+    ScrollView, 
+    Text 
+} from 'react-native';
 
 interface Props {
     history: string[],
     currentVal: string,
     handlePressHistory: (viewing: string) => void,
-    width?: number
 }
 
 export default function History(props: Props) {
-    const [viewVal, setViewVal] = useState('current');
+    const scrollRef = useRef<null | ScrollView>(null);
+    const [selectedIndex, setSelectedIndex] = useState<number>(props.history.length - 1);
 
     useEffect(() => {
-        setViewVal('current');
-    }, [props.currentVal]);
+        if (scrollRef && scrollRef.current)
+            scrollRef.current.scrollToEnd();
 
-    const items: JSX.Element[] = [];
-    props.history.forEach((item, index) => {
-        items.push(
-            <Picker.Item label={item} value={item} key={String(index)} />
-        );
-    });
+        if (selectedIndex === -1) setSelectedIndex(props.history.length - 1);
+    }, [props.history.length]);
+
+    const history: any[] = [...props.history, props.currentVal]
+        .map((h: string, i: number) => (
+            <Text style={{
+                    textAlign: 'right',
+                    fontSize: 24,
+                    color: selectedIndex === i ? 'red' : 'gray',
+                }}
+                numberOfLines={1}
+                ellipsizeMode='head'
+                key={i} 
+                onPress={() => {
+                    if (selectedIndex === i) {
+                        props.handlePressHistory([...props.history, props.currentVal][selectedIndex]);
+                    } else setSelectedIndex(i);
+                }}>
+                {h}
+            </Text>
+        )
+    );
 
     return (
-        <View style={{ flexDirection: 'row' }}>
-            <Picker 
-                style={{
-                    flex: 1,
-                    width: props.width || 'auto',
-                    height: 130,
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
+            <ScrollView style={{
+                    flexGrow: 1,
                     overflow: 'hidden',
                 }}
-                itemStyle={{
-                    textAlign: 'right'
-                }}
-                selectedValue={viewVal}
-                onValueChange={itemValue => setViewVal(itemValue)}
+                ref={scrollRef}
+                decelerationRate='fast'
             >
-                {items}
-                <Picker.Item 
-                    label={props.currentVal.length > 0 ? "= " + props.currentVal : ''} 
-                    value='current'
-                />
-            </Picker>
-
-            <TouchableOpacity 
-                style={{ 
-                    alignSelf: 'flex-end',
-                    transform: [{ translateY: -3 }],
-                    marginLeft: 3
-                }}
-                onPress={() => props.handlePressHistory(viewVal)}
-                onLongPress={() => props.handlePressHistory('clear')}
-            >
-                <Feather name='clock' size={32} color='gray' />
-            </TouchableOpacity>
+                {history}
+            </ScrollView>
         </View>
     );
 }
