@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Dimensions, View } from 'react-native';
+import { Dimensions, View, Text } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -14,10 +14,10 @@ const window = Dimensions.get('window');
 const btnWidth = (window.width / 4) - (2 * safeX);
 
 export default function Calculator() {
-    const [main, setMain] = useState('');
-
+    const [main, setMain] = useState<string>('');
+    const [didJustPressEq, setDidJustPressEq] = useState<boolean>(false);
     const [history, setHistory] = useState<string[]>([]);
-    const [currentVal, setCurrentVal] = useState('');
+    const [currentVal, setCurrentVal] = useState<string>('');
 
     const dimensions = {
         rowHeight: btnWidth,
@@ -29,16 +29,20 @@ export default function Calculator() {
      * @param label the pressed button's label
      */
     function handlePress(label: string): void {
-        // anything but =
-        if (label !== '=') {
-            setMain(main + label);
-            setCurrentVal(calculate(main + label));
-
-        // = only
-        } else {
+        if (label === '=') {
             const result = calculate(main);
             setHistory([...history, main + " = " + result]);
             setMain(result);
+            setDidJustPressEq(true);
+
+        } else {
+            let newMain = label;
+            if (!didJustPressEq) {
+                newMain = main + label;
+            } else setDidJustPressEq(false);
+
+            setMain(newMain);
+            setCurrentVal(calculate(newMain));
         }
     }
 
@@ -79,14 +83,18 @@ export default function Calculator() {
                 flexGrow: 1, 
                 justifyContent: 'flex-end',
             }}>
-                <History currentVal={currentVal} history={history} handlePressHistory={handlePressHistory} />
+                <History currentVal={currentVal} 
+                    history={history} 
+                    handlePressHistory={handlePressHistory}
+                />
 
                 <View style={{ flexDirection: 'row', alignSelf: 'flex-end' }}>
-                    <HorizontalScroll text={main} maxFontSize={btnWidth * 0.8} />
+                    <HorizontalScroll text={main}
+                        color={didJustPressEq ? 'darkgray' : 'black'} 
+                        maxFontSize={btnWidth * 0.8} 
+                    />
+
                     <View style={{ justifyContent: 'space-around' }}>
-
-                        
-
                         <DeleteButton amount='one' backspace={backspace}>
                             <Feather name='delete' size={32} color='gray' />
                         </DeleteButton>
@@ -94,6 +102,7 @@ export default function Calculator() {
                             <MaterialCommunityIcons name='close-circle-outline' size={32} color='gray' />
                         </DeleteButton>
                     </View>
+
                 </View>
             </View>
 
