@@ -1,141 +1,221 @@
-import React, { useState } from 'react'
-import { Dimensions, View, Text } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react'
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import CalcButton from '../components/CalcButton';
-import DeleteButton from '../components/DeleteButton';
 import HorizontalScroll from '../components/HorizontalScroll';
 import calculate from '../util/calculate';
 import History from '../components/History';
+import useDimensions from '../util/useDimensions';
+import Memory, { SaveItem } from '../components/Memory/Memory';
 
-const safeX = 4;
-const window = Dimensions.get('window');
-const btnWidth = (window.width / 4) - (2 * safeX);
+interface MainDisplay {
+    text: string,
+    willDeleteOnNext: boolean,
+}
+
+interface HistoryData {
+    history: string[],
+    current: string
+}
 
 export default function Calculator() {
-    const [main, setMain] = useState<string>('');
-    const [didJustPressEq, setDidJustPressEq] = useState<boolean>(false);
-    const [history, setHistory] = useState<string[]>([]);
-    const [currentVal, setCurrentVal] = useState<string>('');
+    const [mainDisplay, setMainDisplay] = useState<MainDisplay>({
+        text: '',
+        willDeleteOnNext: true,
+    });
+    const [historyData, setHistoryData] = useState<HistoryData>({
+        current: '',
+        history: []
+    });
+    const [memoryEditOrder, setMemoryEditOrder] = useState<number>(-1);
 
-    const dimensions = {
-        rowHeight: btnWidth,
-        colWidth: btnWidth
-    }
+    const rowRef = useRef<View | null>(null);
+    const rowDimensions = useDimensions(rowRef);
+    const fontSize = (rowDimensions.height ?? 0) * 0.5;
+
+    const historyRef = useRef<View | null>(null);
+    const historyDimensions = useDimensions(historyRef, 5);
 
     /**
-     * Handles main button presses
-     * @param label the pressed button's label
+     * Perform current history calculations
      */
-    function handlePress(label: string): void {
+    useEffect(() => {
+        // todo: improve the robustness of this regular expression test
+        const regex: RegExp = new RegExp('[0-9]+[^0-9|\.][0-9]+');
+        setHistoryData({
+            current: regex.test(mainDisplay.text) ? `${mainDisplay.text} = ${calculate(mainDisplay.text)}` : '',
+            history: historyData.history
+        });
+    }, [mainDisplay.text]);
+
+    /**
+     * Handle pressing a calculator function button
+     * @param label the label of the button that was pressed
+     */
+    function handlePressCalcButton(label: string): void {
+        if (memoryEditOrder > -1 && /[^0-9\|.]/.test(label)) return;
+
         if (label === '=') {
-            const result = calculate(main);
-            setHistory([...history, main + " = " + result]);
-            setMain(result);
-            setDidJustPressEq(true);
-
-        } else {
-            let newMain = label;
-            if (!didJustPressEq) {
-                newMain = main + label;
-            } else setDidJustPressEq(false);
-
-            setMain(newMain);
-            setCurrentVal(calculate(newMain));
-        }
-    }
-
-    /**
-     * Handles backspacing characters
-     * @param howMany how many chars to backspace
-     */
-    function backspace(howMany: 'one' | 'all'): void {
-        let newMain;
-        switch (howMany) {
-            case 'one':
-                newMain = main.substring(0, main.length - 1);
-                break;
-            case 'all': 
-                newMain = ''; 
-                break;
-        }
-        setMain(newMain);
-        setCurrentVal(calculate(newMain));
-    }
-
-    function handlePressHistory(viewing: string) {
-        if (viewing === 'clear') {
-            setHistory([]);
+            const calculated = calculate(mainDisplay.text);
+            setHistoryData({
+                current: '',
+                history: [`${mainDisplay.text} = ${calculated}`, ...historyData.history]
+            });
+            setMainDisplay({
+                text: '= ' + calculated,
+                willDeleteOnNext: true
+            });
             return;
         }
-        if (viewing === 'current' || viewing.length < 3) return;
 
-        const valToAdd = viewing.substring(viewing.indexOf('=') + 2, viewing.length);
-        setMain(main + valToAdd);
-        setCurrentVal(calculate(main + valToAdd));
+        if (mainDisplay.willDeleteOnNext) {
+            setMainDisplay({
+                text: label,
+                willDeleteOnNext: false
+            });
+        } else {
+            setMainDisplay({
+                text: mainDisplay.text + label,
+                willDeleteOnNext: false
+            });
+        }
+    }
+
+    /**
+     * Clear the main display - no questions asked
+     */
+    function clearMainText() {
+        setMainDisplay({
+            text: '',
+            willDeleteOnNext: false
+        });
+    }
+
+    /**
+     * Remove only the last character from the display unless display is set to clear
+     */
+    function backspaceMainText() {
+        if (mainDisplay.willDeleteOnNext) clearMainText();
+        else setMainDisplay({
+            text: mainDisplay.text.substring(0, mainDisplay.text.length - 1),
+            willDeleteOnNext: false
+        });
     }
 
     return (
-        <View style={{ paddingHorizontal: safeX, flexGrow: 1 }}>
+        <View style={styles.container}>
+            {/* Memory */}
+            <View style={styles.memory}>
+                <Memory 
+                    handleAddToMain={handlePressCalcButton} 
+                    toggleEditMemoryMode={(item: SaveItem) => {
+                        setMemoryEditOrder(memoryEditOrder === -1 ? item.order : -1);
+                        setMainDisplay({
+                            text: '',
+                            willDeleteOnNext: false
+                        });
+                    }}
+                    overrideItem={memoryEditOrder !== -1 ? {
+                        order: memoryEditOrder,
+                        value: mainDisplay.text
+                    }: undefined} />
+            </View>
 
-            <View style={{ 
-                flexGrow: 1, 
-                justifyContent: 'flex-end',
-            }}>
-                <History currentVal={currentVal} 
-                    history={history} 
-                    handlePressHistory={handlePressHistory}
+            {/* History */}
+            <View style={styles.history} ref={historyRef}>
+                <History 
+                    currentVal={historyData.current} 
+                    history={historyData.history}
+                    handlePressHistory={handlePressCalcButton}
+                    totalWidth={historyDimensions.width ?? 0}
+                    totalHeight={historyDimensions.height ?? 0}
                 />
+            </View>
 
-                <View style={{ flexDirection: 'row', alignSelf: 'flex-end' }}>
-                    <HorizontalScroll text={main}
-                        color={didJustPressEq ? 'darkgray' : 'black'} 
-                        maxFontSize={btnWidth * 0.8} 
-                    />
+            {/* Main text */}
+            {/* self-sizing useDimensions => no need to adjust here */}
+            <View style={[styles.mainDisplay, { height: rowDimensions.height ?? 50 }]}>
+                <HorizontalScroll
+                    text={mainDisplay.text} 
+                    fontSize={fontSize * 1.33} 
+                    color={mainDisplay.willDeleteOnNext ? 'gray' : 'black'} 
+                />
+                <TouchableOpacity style={{ 
+                        height: '100%', 
+                        justifyContent: 'center',
+                        paddingHorizontal: 3
+                    }}
+                    onPress={() => backspaceMainText()}
+                    onLongPress={() => clearMainText()}>
 
-                    <View style={{ justifyContent: 'space-around' }}>
-                        <DeleteButton amount='one' backspace={backspace}>
-                            <Feather name='delete' size={32} color='gray' />
-                        </DeleteButton>
-                        <DeleteButton amount='all' backspace={backspace}>
-                            <MaterialCommunityIcons name='close-circle-outline' size={32} color='gray' />
-                        </DeleteButton>
+                    <Feather name='delete' size={32} color='black' />
+                </TouchableOpacity>
+            </View>
+
+            {/* Calc buttons */}
+            <View style={{ 
+                maxHeight: (rowDimensions.width ?? 50) * 1.25, // since the grid is 4x5 => *1.25
+                flexGrow: 1,
+            }}>
+                <View style={styles.calcRow} ref={rowRef}>
+                    <CalcButton label='^' handlePress={handlePressCalcButton} fontSize={fontSize} />
+                    <CalcButton label='(' handlePress={handlePressCalcButton} fontSize={fontSize} />
+                    <CalcButton label=')' handlePress={handlePressCalcButton} fontSize={fontSize} />
+                    <CalcButton label='/' handlePress={handlePressCalcButton} fontSize={fontSize} />
+                </View>
+                <View style={styles.calcRow}>
+                    <CalcButton label='7' handlePress={handlePressCalcButton} fontSize={fontSize} />
+                    <CalcButton label='8' handlePress={handlePressCalcButton} fontSize={fontSize} />
+                    <CalcButton label='9' handlePress={handlePressCalcButton} fontSize={fontSize} />
+                    <CalcButton label='*' handlePress={handlePressCalcButton} fontSize={fontSize} />
+                </View>
+                <View style={styles.calcRow}>
+                    <CalcButton label='4' handlePress={handlePressCalcButton} fontSize={fontSize} />
+                    <CalcButton label='5' handlePress={handlePressCalcButton} fontSize={fontSize} />
+                    <CalcButton label='6' handlePress={handlePressCalcButton} fontSize={fontSize} />
+                    <CalcButton label='-' handlePress={handlePressCalcButton} fontSize={fontSize} />
+                </View>
+                <View style={styles.calcRow}>
+                    <CalcButton label='1' handlePress={handlePressCalcButton} fontSize={fontSize} />
+                    <CalcButton label='2' handlePress={handlePressCalcButton} fontSize={fontSize} />
+                    <CalcButton label='3' handlePress={handlePressCalcButton} fontSize={fontSize} />
+                    <CalcButton label='+' handlePress={handlePressCalcButton} fontSize={fontSize} />
+                </View>
+                <View style={styles.calcRow}>
+                    <View style={{ flexGrow: 2, flexBasis: 0 }}>
+                        <CalcButton label='0' handlePress={handlePressCalcButton} fontSize={fontSize} />
                     </View>
-
+                    <CalcButton label='.' handlePress={handlePressCalcButton} fontSize={fontSize} />
+                    <CalcButton label='=' handlePress={handlePressCalcButton} fontSize={fontSize} />
                 </View>
             </View>
-
-            <View style={{ flexDirection: 'row' }}>
-                <CalcButton dimensions={dimensions} label='^' color='orange' handlePress={handlePress} />
-                <CalcButton dimensions={dimensions} label='(' color='orange' handlePress={handlePress} />
-                <CalcButton dimensions={dimensions} label=')' color='orange' handlePress={handlePress} />
-                <CalcButton dimensions={dimensions} label='/' color='orange' handlePress={handlePress} />
-            </View>
-            <View style={{ flexDirection: 'row' }}>
-                <CalcButton dimensions={dimensions} label='7' handlePress={handlePress} />
-                <CalcButton dimensions={dimensions} label='8' handlePress={handlePress} />
-                <CalcButton dimensions={dimensions} label='9' handlePress={handlePress} />
-                <CalcButton dimensions={dimensions} label='*' color='orange' handlePress={handlePress} />
-            </View>
-            <View style={{ flexDirection: 'row' }}>
-                <CalcButton dimensions={dimensions} label='4' handlePress={handlePress} />
-                <CalcButton dimensions={dimensions} label='5' handlePress={handlePress} />
-                <CalcButton dimensions={dimensions} label='6' handlePress={handlePress} />
-                <CalcButton dimensions={dimensions} label='-' color='orange' handlePress={handlePress} />
-            </View>
-            <View style={{ flexDirection: 'row' }}>
-                <CalcButton dimensions={dimensions} label='1' handlePress={handlePress} />
-                <CalcButton dimensions={dimensions} label='2' handlePress={handlePress} />
-                <CalcButton dimensions={dimensions} label='3' handlePress={handlePress} />
-                <CalcButton dimensions={dimensions} label='+' color='orange' handlePress={handlePress} />
-            </View>
-            <View style={{ flexDirection: 'row' }}>
-                <CalcButton dimensions={dimensions} numCols={2} label='0' handlePress={handlePress} />
-                <CalcButton dimensions={dimensions} label='.' handlePress={handlePress} />
-                <CalcButton dimensions={dimensions} label='=' color='orange' handlePress={handlePress} />
-            </View>
-            
         </View>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flexGrow: 1,
+        overflow: 'hidden',
+    },
+    memory: {
+        flexDirection: 'row',
+        justifyContent: 'space-evenly'
+    },
+    history: {
+        flexGrow: 1,
+        overflow: 'hidden',
+    },
+    mainDisplay: {
+        maxHeight: '25%',
+        flexDirection: 'row',
+        justifyContent: 'flex-end'
+    },
+    calcRow: {
+        flexDirection: 'row',
+        flexGrow: 1,
+        flexShrink: 0,
+        justifyContent: 'space-evenly',
+    },
+});
