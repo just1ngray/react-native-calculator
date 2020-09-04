@@ -9,10 +9,11 @@ interface Dimensions {
 
 /**
  * Get the dimensions of a ref's bounding box if HTML, or if react-native
- * @param ref   the ref to measure
+ * @param ref       the ref to measure
+ * @param threshold (optional: default=1) dimension change amount before re-returning new dimensions
  * @returns dimensions object with number properties: height, width, x, y
  */
-export default function(ref: MutableRefObject<any> | null): Dimensions {
+export default function(ref: MutableRefObject<any> | null, threshold: number = 1): Dimensions {
     const [dimensions, setDimensions] = useState<Dimensions>({
         height: null,
         width: null,
@@ -50,10 +51,10 @@ export default function(ref: MutableRefObject<any> | null): Dimensions {
 
         // difference in one or more properties greater than threshold
         else if (
-            Math.abs(dimensions.height! - newDimensions.height!) > 1! ||
-            Math.abs(dimensions.width! - newDimensions.width!) > 1! ||
-            Math.abs(dimensions.x! - newDimensions.x!) > 1! ||
-            Math.abs(dimensions.y! - newDimensions.y!) > 1!
+            Math.abs(dimensions.height! - newDimensions.height!) > threshold ||
+            Math.abs(dimensions.width! - newDimensions.width!) > threshold ||
+            Math.abs(dimensions.x! - newDimensions.x!) > threshold ||
+            Math.abs(dimensions.y! - newDimensions.y!) > threshold
         ) {
             setDimensions(newDimensions);
         }
