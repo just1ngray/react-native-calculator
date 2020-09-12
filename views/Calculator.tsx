@@ -57,6 +57,9 @@ export default function Calculator() {
         if (memoryEditOrder > -1 && /[^0-9\|.]/.test(label)) return;
 
         if (label === '=') {
+            // no need to re-calculate when we've just calculated!
+            if (mainDisplay.willDeleteOnNext) return;
+
             const calculated = calculate(mainDisplay.text);
             setHistoryData({
                 current: '',
