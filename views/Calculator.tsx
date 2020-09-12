@@ -54,7 +54,7 @@ export default function Calculator() {
      * @param label the label of the button that was pressed
      */
     function handlePressCalcButton(label: string): void {
-        if (memoryEditOrder > -1 && /[^0-9\|.]/.test(label)) return;
+        if (memoryEditOrder > -1 && label.includes('=')) return;
 
         if (label === '=') {
             // no need to re-calculate when we've just calculated!
