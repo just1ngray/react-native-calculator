@@ -30,7 +30,7 @@ export default function MemoryButton(props: Props) {
             onLongPress={() => props.handleEdit(props.item)}>
 
             <Text style={textStyle}>
-                {props.item.value}
+                {props.item.value.length > 0 ? props.item.value : ' '}
             </Text>
         </TouchableOpacity>
     );
