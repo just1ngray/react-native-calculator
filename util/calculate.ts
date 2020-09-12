@@ -26,8 +26,8 @@ export default function calculate(expression: string): string {
         // replace any instance of -(...) with -1*(...)
         expression = expression.replace(/-\(/g, '-1*(');
 
-        // replace any instance of .( with .*(
-        expression = expression.replace(/.\(/g, match => `${match.charAt(0)}*(`);
+        // replace any instance of [not *]( with [not *]*(
+        expression = expression.replace(/[^*]\(/g, match => `${match.charAt(0)}*(`);
 
         // replace any instance of #-- with #+
         expression = expression.replace(/[0-9]--/g, match => match.charAt(0) + '+');
@@ -37,6 +37,20 @@ export default function calculate(expression: string): string {
 
         // split into an array of components (single +ve or -ve numbers, or operations)
         const nomials = expression.split(/([^0-9|.|-])/).filter(t => t.length > 0);
+
+        const hasNumbers = new RegExp('[0-9|\.]');
+        const isValidNumber = new RegExp('^-*[0-9]*\.{0,1}[0-9]+$');
+        for (let i = 0; i < nomials.length; i ++) {
+            const n = nomials[i];
+            if (hasNumbers.test(n)) {
+
+                // ensure each numeric nomial has only one decimal
+                if (!isValidNumber.test(n)) return 'Math error';
+
+                // remove excess minus signs in a numeric nomial (simplify)
+                nomials[i] = n.replace(/\-\-/g, '');
+            }
+        }
 
         // recursively go deeper into brackets
         while (nomials.indexOf('(') > -1) {
@@ -49,7 +63,8 @@ export default function calculate(expression: string): string {
                 if (depth === 0) {
                     const wrapped = nomials.splice(openBracketIndex, (i + 1) - openBracketIndex);   // 1. get the (...)
                     const inner = wrapped.slice(1, wrapped.length - 1);                             // 2. get the  ...
-                    nomials.splice(openBracketIndex, 0, calculate(inner.join('')));                 // 3. insert the new calculated 
+                    const calcResult = calculate(inner.join(''));                                   // 3. calculate ...
+                    nomials.splice(openBracketIndex, 0, calcResult);                                // 4. insert the new calculated 
                                                                                                     //    value in spot of old (...)
                     break;
                 }
