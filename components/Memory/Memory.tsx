@@ -101,8 +101,8 @@ export default function Memory(props: Props) {
      */
     function handleEditStart(item: SaveItem) {
         Alert.alert(
-            `${item.value}`,
-            'todo instructions',
+            `Memory Option: ${item.value}`,
+            'Delete or edit this memory option. \nTo edit, choose "Edit", type your number, and finally press the blue button.',
             [
                 {
                     text: 'Delete',
@@ -159,6 +159,14 @@ export default function Memory(props: Props) {
             }
         });
 
+    function addNewMemory() {
+        const newItem = { order: memory.length + 1, value: '0.00' };
+        saveOne(newItem);
+        const [copy] = getMemoryCopy();
+        copy.push(newItem);
+        setMemory(copy);
+    }
+
     return (
         <View style={styles.container}>
             {jsx}
@@ -167,14 +175,8 @@ export default function Memory(props: Props) {
                     order: memory.length + 1,
                     value: 'Add +'
                 }} 
-                handlePress={() => {}} 
-                handleEdit={() => {
-                    const newItem = { order: memory.length + 1, value: '0.00' };
-                    saveOne(newItem);
-                    const [copy] = getMemoryCopy();
-                    copy.push(newItem);
-                    setMemory(copy);
-                }}
+                handlePress={addNewMemory} 
+                handleEdit={addNewMemory}
                 key='add' />
         </View>
     );
